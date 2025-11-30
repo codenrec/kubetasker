@@ -28,6 +28,9 @@ PYVENV=.kubetasker_pyenv
 FRONTEND=kubetasker-frontend
 FRONTEND_PORT=8000
 
+PROMETHEUS=my-kube-prometheus-stack-prometheus
+PROMETHEUS_PORT=9090
+
 # Path to the Helm charts directory
 CHART_ROOT ?= helm
 
@@ -298,6 +301,22 @@ install-cert-manager: ## Install cert-manager using Helm if it's not already pre
 		echo "--- cert-manager is already installed. Skipping installation."; \
 	fi
 
+.PHONY: install-prometheus-stack
+install-prometheus-stack:
+	@echo "--- Checking for prometheus release..."
+	@if ! helm status prometheus -n monitoring > /dev/null 2>&1; then \
+		echo "--- prometheus not found. Installing via Helm..."; \
+		helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update; \
+		helm repo update; \
+		helm install my-kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+			--namespace monitoring \
+			--create-namespace \
+			--set installedCDRs=true \
+			--wait; \
+		else \
+			echo "--- prometheus is already installed. Skipping installation."; \
+		fi
+
 # Variables for the umbrella deployment
 UMBRELLA_NAMESPACE ?= kubetasker-system
 UMBRELLA_RELEASE_NAME ?= kubetasker
@@ -419,6 +438,10 @@ $(ENVTEST): $(LOCALBIN)
 golangci-lint: $(GOLANGCI_LINT) ## Download golangci-lint locally if necessary.
 $(GOLANGCI_LINT): $(LOCALBIN)
 	$(call go-install-tool,$(GOLANGCI_LINT),github.com/golangci/golangci-lint/v2/cmd/golangci-lint,$(GOLANGCI_LINT_VERSION))
+
+.PHONY: local-prometheus-dashboard
+local-prometheus-dashboard: 
+	$(KUBECTL) port-forward svc/$(PROMETHEUS) -n monitoring $(PROMETHEUS_PORT):$(PROMETHEUS_PORT)
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
