@@ -124,7 +124,7 @@ var _ = Describe("Manager", Ordered, func() {
 		By("verifying the frontend pod is running")
 		verifyFrontendUp := func(g Gomega) {
 			// Use `kubectl wait` for a more reliable check. This ensures the pod is not only
-			// running but also ready to receive traffic before we proceed.
+			// running but also ready to receive traffic before proceeding.
 			cmd := exec.Command("kubectl", "wait", "pod", "-l", "app.kubernetes.io/name=kubetasker-frontend",
 				"--for=condition=Ready", "--timeout=2m", "-n", namespace)
 			output, err := utils.Run(cmd)
@@ -149,7 +149,7 @@ var _ = Describe("Manager", Ordered, func() {
 		cmd = exec.Command("helm", "uninstall", frontendDeploymentName, "--namespace", namespace)
 		if _, err := utils.Run(cmd); err != nil {
 			// Helm uninstall might fail if the release was not found, which is okay.
-			// We can make this check more robust if needed, but for cleanup, logging a warning is sufficient.
+			// For cleanup, logging a warning is sufficient.
 			if !strings.Contains(err.Error(), "release: not found") {
 				_, _ = fmt.Fprintf(GinkgoWriter, "warning: failed to uninstall frontend helm release: %v\n", err)
 			}
@@ -497,7 +497,7 @@ spec:
 				g.Expect(output).To(Equal("TransientFailure"))
 			}
 			// The Job has a backoffLimit of 4, so this might take some time.
-			// We'll give it a generous timeout.
+			// Give a generous timeout.
 			Eventually(verifyKtaskFailed, 3*time.Minute).Should(Succeed())
 
 			By("verifying the underlying Job is marked as failed")
@@ -664,12 +664,12 @@ spec:
 
 			By("attempting to update an immutable field (spec.image)")
 			// The image field is often immutable. The webhook should reject this change.
-			// We use 'kubectl patch' for a direct update attempt.
+			// Use 'kubectl patch' for a direct update attempt.
 			patch := `{"spec":{"image":"nginx"}}`
 			cmd = exec.Command("kubectl", "patch", "ktask", ktaskName,
 				"-n", namespace, "--type=merge", "-p", patch)
 
-			// We expect this command to fail.
+			// Expect this command to fail.
 			output, err := utils.Run(cmd)
 			Expect(err).To(HaveOccurred(), "The validating webhook should reject the update.")
 
@@ -681,7 +681,7 @@ spec:
 	Context("Autoscaling", func() {
 		It("should scale up the frontend deployment under load", func() {
 			// This test is designed to run where HPA is enabled.
-			// We check for the HPA resource first. If it's not there, we skip the test.
+			// Check for the HPA resource first. If it's not there, skip the test.
 			By("checking if HPA is enabled for the frontend")
 			hpaName := frontendServiceName
 			cmd := exec.Command("kubectl", "get", "hpa", hpaName, "-n", namespace)
@@ -703,7 +703,7 @@ spec:
 			Expect(initialReplicas).To(BeNumerically(">", 0), "Should have at least one replica to start")
 
 			By("generating load against the frontend service")
-			// We use vegeta, a popular HTTP load testing tool.
+			// Use vegeta, a popular HTTP load testing tool.
 			// This command will send requests to the /healthz endpoint for 60 seconds.
 			// The rate and duration may need tuning based on your cluster and HPA settings.
 			loadTestPodName := "vegeta-load-test"
@@ -712,13 +712,12 @@ spec:
 			// This might need adjustment.
 			vegetaCmd := fmt.Sprintf("echo 'GET %s' | vegeta attack -rate=300 -duration=90s | vegeta report", targetURL)
 
-			// We run the load test in a temporary pod.
+			// Run the load test in a temporary pod.
 			// Using a helper function to run a command in a pod and clean it up.
 			runInPod(loadTestPodName, namespace, "peterevans/vegeta", []string{"/bin/sh", "-c", vegetaCmd})
 
 			By("verifying the frontend deployment scaled up")
 			// The HPA controller checks metrics every 15 seconds by default, and scaling decisions take time.
-			// We'll check for an increase in replicas over a few minutes.
 			verifyScaleUp := func(g Gomega) {
 				currentReplicas := getReplicas()
 				g.Expect(currentReplicas).To(BeNumerically(">", initialReplicas),
@@ -728,7 +727,6 @@ spec:
 			Eventually(verifyScaleUp, 5*time.Minute, 20*time.Second).Should(Succeed())
 
 			// After the test, the load stops, and the HPA should eventually scale back down.
-			// We can add a check for that too if desired, but it's less critical for the test.
 			By("cleaning up the load test pod")
 			cmd = exec.Command("kubectl", "delete", "pod", loadTestPodName, "-n", namespace, "--ignore-not-found")
 			_, _ = utils.Run(cmd)
@@ -763,8 +761,6 @@ func runInPod(podName, namespace, image string, command []string) {
 	args = append(args, command...)
 	_, err := utils.Run(exec.Command("kubectl", args...))
 	Expect(err).NotTo(HaveOccurred(), "Failed to run pod "+podName)
-
-	// We don't wait for completion here, as the load test runs in the background.
 	// The caller is responsible for cleanup.
 }
 
