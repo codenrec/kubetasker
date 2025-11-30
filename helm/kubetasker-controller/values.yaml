@@ -168,3 +168,18 @@ certManager:
 # webhookPrefix is used to create unique webhook names for parallel test runs.
 # For example, setting it to "umbrella-" results in "umbrella-mktask.kb.io".
 webhookPrefix: ""
+
+# Prometheus configuration for metrics scraping.
+prometheus:
+  serviceAccount:
+    # The name of the ServiceAccount that Prometheus uses to scrape metrics.
+    name: my-kube-prometheus-stack-prometheus
+    namespace: monitoring
+  serviceMonitor:
+    # When true, a ServiceMonitor resource will be created.
+    enabled: true
+    # Additional labels to add to the ServiceMonitor.
+    # The prometheus-operator uses this to discover ServiceMonitors.
+    # For example: { "release": "my-kube-prometheus-stack" }
+    labels:
+      release: my-kube-prometheus-stack

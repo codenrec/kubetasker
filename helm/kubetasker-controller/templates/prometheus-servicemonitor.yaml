@@ -1,0 +1,31 @@
+{{- if .Values.prometheus.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "kubetasker-controller.fullname" . }}
+  labels:
+    {{- include "kubetasker-controller.labels" . | nindent 4 }}
+    {{- if .Values.prometheus.serviceMonitor.labels }}
+    {{- toYaml .Values.prometheus.serviceMonitor.labels | nindent 4 }}
+    {{- end }}
+spec:
+  namespaceSelector:
+    matchNames:
+    - {{ .Release.Namespace }}
+  selector:
+    matchLabels:
+      {{- include "kubetasker-controller.selectorLabels" . | nindent 6 }}
+      control-plane: controller-manager
+  endpoints:
+  - port: https
+    path: /metrics
+    interval: 15s
+    scheme: https
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      # The option insecureSkipVerify: true is not recommended for production.
+      # For production, it is recommended to use cert-manager for automatic TLS certificate management.
+      # The 'cert-manager.yaml' template in this chart creates a self-signed cert for this purpose.
+      # You would then configure the ca, cert, and keySecret fields here.
+      insecureSkipVerify: true
+{{- end }}

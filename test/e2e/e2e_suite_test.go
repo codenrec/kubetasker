@@ -114,6 +114,9 @@ var _ = BeforeSuite(func() {
 		// We apply the components and then patch the deployment for insecure TLS, which is necessary for Kind.
 		Expect(utils.InstallMetricsServer()).To(Succeed(), "Failed to install Metrics Server")
 
+		By("installing the Prometheus Operator CRDs for ServiceMonitor support")
+		Expect(utils.InstallPrometheusOperator()).To(Succeed(), "Failed to install Prometheus Operator")
+
 	}
 })
 

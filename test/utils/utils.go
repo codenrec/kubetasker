@@ -34,6 +34,11 @@ const (
 	defaultKindBinary     = "kind"
 )
 
+const (
+	// This version should be kept in sync with what you use in production if possible.
+	prometheusOperatorVersion = "v0.75.0"
+)
+
 func warnError(err error) {
 	_, _ = fmt.Fprintf(GinkgoWriter, "warning: %v\n", err)
 }
@@ -142,6 +147,24 @@ func InstallMetricsServer() error {
 	cmd = exec.Command("kubectl", "wait", "apiservice", "v1beta1.metrics.k8s.io", "--for", "condition=Available", "--timeout=2m")
 	_, err = Run(cmd)
 	return err
+}
+
+// InstallPrometheusOperator applies the CRDs required by the Prometheus Operator.
+// This is necessary for tests that deploy ServiceMonitor resources.
+func InstallPrometheusOperator() error {
+	// The Prometheus Operator repository contains a manifest with all its CRDs.
+	// This is a lightweight way to make the test cluster aware of ServiceMonitors, etc.
+	manifestURL := fmt.Sprintf("https://github.com/prometheus-operator/prometheus-operator/releases/download/%s/bundle.yaml", prometheusOperatorVersion)
+
+	// We use 'kubectl apply' to install the CRDs from the URL.
+	// The --server-side flag helps avoid "too large" annotation errors on CRDs.
+	cmd := exec.Command("kubectl", "apply", "--server-side", "-f", manifestURL)
+
+	if _, err := Run(cmd); err != nil {
+		return fmt.Errorf("failed to install Prometheus Operator CRDs: %w", err)
+	}
+
+	return nil
 }
 
 // IsCertManagerCRDsInstalled checks if any Cert Manager CRDs are installed

@@ -67,8 +67,8 @@ func run(cfg *rest.Config, scheme *runtime.Scheme, args []string) error {
 	var tlsOpts []func(*tls.Config)
 
 	fs := flag.NewFlagSet("kubetasker", flag.ContinueOnError)
-	fs.StringVar(&metricsAddr, "metrics-bind-address", "0", "The address the metrics endpoint binds to. "+
-		"Use :8443 for HTTPS or :8080 for HTTP, or leave as 0 to disable the metrics service.")
+	fs.StringVar(&metricsAddr, "metrics-bind-address", ":8443", "The address the metrics endpoint binds to. "+
+		"Use :8080 for HTTP.")
 	fs.StringVar(&probeAddr, "health-probe-bind-address", ":8081", "The address the probe endpoint binds to.")
 	fs.BoolVar(&enableLeaderElection, "leader-elect", false,
 		"Enable leader election for controller manager. "+

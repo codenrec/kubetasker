@@ -138,6 +138,13 @@ var _ = Describe("Manager", Ordered, func() {
 	// and deleting the namespace.
 	AfterAll(func() {
 		var cmd *exec.Cmd
+		// Cleanup the cluster-scoped resources created for the metrics test
+		By("cleaning up metrics auth ClusterRole and ClusterRoleBinding")
+		cmd = exec.Command("kubectl", "delete", "clusterrole", controllerFullName+"-metrics-auth-reader", "--ignore-not-found")
+		_, _ = utils.Run(cmd)
+		cmd = exec.Command("kubectl", "delete", "clusterrolebinding", controllerFullName+"-metrics-auth-reader-binding", "--ignore-not-found")
+		_, _ = utils.Run(cmd)
+
 		By("cleaning up the curl pod for metrics")
 		// Only attempt to delete if the pod was actually created
 		if _, err := utils.Run(exec.Command("kubectl", "get", "pod", "curl-metrics", "-n", namespace)); err == nil {
@@ -256,6 +263,42 @@ roleRef:
 			cmd.Stdin = strings.NewReader(roleBindingYAML)
 			_, err = utils.Run(cmd)
 			Expect(err).NotTo(HaveOccurred(), "Failed to create RoleBinding for metrics test")
+
+			By("creating a ClusterRole and ClusterRoleBinding for metrics auth")
+			// This ClusterRole allows getting the /metrics endpoint.
+			clusterRoleYAML := fmt.Sprintf(`
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: %s-metrics-auth-reader
+rules:
+- nonResourceURLs: ["/metrics"]
+  verbs: ["get"]
+`, controllerFullName)
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = strings.NewReader(clusterRoleYAML)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create ClusterRole for metrics auth")
+
+			// Bind the ClusterRole to the controller's ServiceAccount.
+			clusterRoleBindingYAML := fmt.Sprintf(`
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: %s-metrics-auth-reader-binding
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: %s-metrics-auth-reader
+subjects:
+- kind: ServiceAccount
+  name: %s
+  namespace: %s
+`, controllerFullName, controllerFullName, controllerFullName, namespace)
+			cmd = exec.Command("kubectl", "apply", "-f", "-")
+			cmd.Stdin = strings.NewReader(clusterRoleBindingYAML)
+			_, err = utils.Run(cmd)
+			Expect(err).NotTo(HaveOccurred(), "Failed to create ClusterRoleBinding for metrics auth")
 
 			By("verifying that the controller manager is serving the metrics server")
 			verifyMetricsServerStarted := func(g Gomega) {

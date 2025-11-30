@@ -110,7 +110,7 @@ var _ = Describe("Kustomize Deployments", Ordered, func() {
 				Expect(err).NotTo(HaveOccurred())
 
 				By("copying the authoritative CRD to the kustomize base")
-				crdSourcePath := filepath.Join(projectRootDir, "config", "crd", "bases", "task.ktasker.com_ktasks.yaml")
+				crdSourcePath := filepath.Join(chartsRoot, "kubetasker-controller", "crds", "task.ktasker.com_ktasks.yaml")
 				crdDestPath := filepath.Join(kustomizeBaseDir, "crd.yaml")
 				crdBytes, err := os.ReadFile(crdSourcePath)
 				Expect(err).NotTo(HaveOccurred(), "Failed to read authoritative CRD from config/crd/bases")

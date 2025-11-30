@@ -1,7 +1,7 @@
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: {{ include "kubetasker-controller.fullname" . }}-metrics-reader-binding
+  name: {{ include "kubetasker-controller.fullname" . }}-prometheus-reader-binding
   labels:
     {{- include "kubetasker-controller.labels" . | nindent 4 }}
 roleRef:
@@ -10,5 +10,5 @@ roleRef:
   name: {{ include "kubetasker-controller.fullname" . }}-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: {{ include "kubetasker-controller.serviceAccountName" . }}
-  namespace: {{ .Release.Namespace }}
+  name: {{ .Values.prometheus.serviceAccount.name }}
+  namespace: {{ .Values.prometheus.serviceAccount.namespace }}
