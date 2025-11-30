@@ -86,8 +86,8 @@ vet: ## Run go vet against code.
 
 .PHONY: golden-update
 golden-update: kustomize-manifests kustomize ## Update golden manifest files for tests.
-	@echo "--- Updating kustomize golden file..."
-	kustomize build config/default > test/golden/kustomize_golden.yaml
+	@echo "--- Updating kustomize base golden file..."
+	kustomize build kustomize/base > test/golden/kustomize_golden.yaml
 	@echo "--- Updating helm golden file..."
 	helm template kubetasker-controller-test $(CHART_ROOT)/kubetasker-controller --set image.repository=ktasker.com/kubetasker --set image.tag=v0.0.1 > test/golden/helm_golden.yaml
 	@echo "--- Updating frontend static golden file..."
@@ -253,26 +253,11 @@ docker-buildx: ## Build and push docker image for the manager for cross-platform
 	- $(CONTAINER_TOOL) buildx rm kubetasker-builder
 	rm Dockerfile.cross
 
-.PHONY: build-installer
-build-installer: manifests generate kustomize ## Generate a consolidated YAML with CRDs and deployment.
-	mkdir -p dist
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default > dist/install.yaml
-
 ##@ Deployment
 
 ifndef ignore-not-found
   ignore-not-found = false
 endif
-
-.PHONY: deploy
-deploy: manifests kustomize ## Deploy controller to the K8s cluster specified in ~/.kube/config.
-	cd config/manager && $(KUSTOMIZE) edit set image controller=${IMG}
-	$(KUSTOMIZE) build config/default | $(KUBECTL) apply -f -
-
-.PHONY: undeploy
-undeploy: kustomize ## Undeploy controller from the K8s cluster specified in ~/.kube/config. Call with ignore-not-found=true to ignore resource not found errors during deletion.
-	$(KUSTOMIZE) build config/default | $(KUBECTL) delete --ignore-not-found=$(ignore-not-found) -f -
 
 .PHONY: install-cert-manager
 install-cert-manager: ## Install cert-manager using Helm if it's not already present.
@@ -301,12 +286,11 @@ install-prometheus-stack:
 		helm install my-kube-prometheus-stack prometheus-community/kube-prometheus-stack \
 			--namespace monitoring \
 			--create-namespace \
-			--set installedCDRs=true \
+			--set crd.create=true \
 			--wait; \
-		kubectl apply -f config/prometheus/monitor.yaml -n monitoring; \
-		else \
-			echo "--- prometheus is already installed. Skipping installation."; \
-		fi
+	else \
+		echo "--- prometheus is already installed. Skipping installation."; \
+	fi
 
 # Variables for the umbrella deployment
 UMBRELLA_NAMESPACE ?= kubetasker-system

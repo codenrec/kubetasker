@@ -110,7 +110,7 @@ rules:
   verbs:
   - create
 ---
-# Source: kubetasker/charts/kubetasker-controller/templates/metrics-reader-clusterrole.yaml
+# Source: kubetasker/charts/kubetasker-controller/templates/prometheus-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -122,10 +122,12 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
 rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
+- apiGroups: [""]
+  resources:
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
 ---
 # Source: kubetasker/charts/kubetasker-controller/templates/manager-clusterrolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -167,11 +169,11 @@ subjects:
   name: umbrella-staging-kubetasker-controller
   namespace: default
 ---
-# Source: kubetasker/charts/kubetasker-controller/templates/metrics-reader-clusterrolebinding.yaml
+# Source: kubetasker/charts/kubetasker-controller/templates/prometheus-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: umbrella-staging-kubetasker-controller-metrics-reader-binding
+  name: umbrella-staging-kubetasker-controller-prometheus-reader-binding
   labels:
     helm.sh/chart: kubetasker-controller-0.1.0
     app.kubernetes.io/name: kubetasker-controller
@@ -184,8 +186,8 @@ roleRef:
   name: umbrella-staging-kubetasker-controller-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: umbrella-staging-kubetasker-controller
-  namespace: default
+  name: my-kube-prometheus-stack-prometheus
+  namespace: monitoring
 ---
 # Source: kubetasker/charts/kubetasker-controller/templates/leader-election-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -503,6 +505,40 @@ spec:
         target:
           type: Utilization
           averageUtilization: 75
+---
+# Source: kubetasker/charts/kubetasker-controller/templates/prometheus-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: umbrella-staging-kubetasker-controller
+  labels:
+    helm.sh/chart: kubetasker-controller-0.1.0
+    app.kubernetes.io/name: kubetasker-controller
+    app.kubernetes.io/instance: umbrella-staging
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+    release: my-kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubetasker-controller
+      app.kubernetes.io/instance: umbrella-staging
+      control-plane: controller-manager
+  endpoints:
+  - port: https
+    path: /metrics
+    interval: 15s
+    scheme: https
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      # The option insecureSkipVerify: true is not recommended for production.
+      # For production, it is recommended to use cert-manager for automatic TLS certificate management.
+      # The 'cert-manager.yaml' template in this chart creates a self-signed cert for this purpose.
+      # You would then configure the ca, cert, and keySecret fields here.
+      insecureSkipVerify: true
 ---
 # Source: kubetasker/charts/kubetasker-controller/templates/webhooks.yaml
 apiVersion: admissionregistration.k8s.io/v1

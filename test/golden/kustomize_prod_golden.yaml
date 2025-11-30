@@ -498,10 +498,16 @@ metadata:
     helm.sh/chart: kubetasker-controller-0.1.0
   name: kubetasker-base-kubetasker-controller-metrics-reader
 rules:
-- nonResourceURLs:
-  - /metrics
+- apiGroups:
+  - ""
+  resources:
+  - services
+  - endpoints
+  - pods
   verbs:
   - get
+  - list
+  - watch
 ---
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
@@ -584,15 +590,15 @@ metadata:
     app.kubernetes.io/name: kubetasker-controller
     app.kubernetes.io/version: 0.0.1
     helm.sh/chart: kubetasker-controller-0.1.0
-  name: kubetasker-base-kubetasker-controller-metrics-reader-binding
+  name: kubetasker-base-kubetasker-controller-prometheus-reader-binding
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: kubetasker-base-kubetasker-controller-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: kubetasker-base-kubetasker-controller
-  namespace: prod
+  name: my-kube-prometheus-stack-prometheus
+  namespace: monitoring
 ---
 apiVersion: v1
 kind: Service
@@ -838,6 +844,36 @@ metadata:
   namespace: prod
 spec:
   selfSigned: {}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  labels:
+    app.kubernetes.io/instance: kubetasker-base
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubetasker-controller
+    app.kubernetes.io/version: 0.0.1
+    helm.sh/chart: kubetasker-controller-0.1.0
+    release: my-kube-prometheus-stack
+  name: kubetasker-base-kubetasker-controller
+  namespace: prod
+spec:
+  endpoints:
+  - bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    interval: 15s
+    path: /metrics
+    port: https
+    scheme: https
+    tlsConfig:
+      insecureSkipVerify: true
+  namespaceSelector:
+    matchNames:
+    - dev
+  selector:
+    matchLabels:
+      app.kubernetes.io/instance: kubetasker-base
+      app.kubernetes.io/name: kubetasker-controller
+      control-plane: controller-manager
 ---
 apiVersion: admissionregistration.k8s.io/v1
 kind: MutatingWebhookConfiguration

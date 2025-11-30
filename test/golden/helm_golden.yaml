@@ -97,7 +97,7 @@ rules:
   verbs:
   - create
 ---
-# Source: kubetasker-controller/templates/metrics-reader-clusterrole.yaml
+# Source: kubetasker-controller/templates/prometheus-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
@@ -109,10 +109,12 @@ metadata:
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
 rules:
-- nonResourceURLs:
-  - /metrics
-  verbs:
-  - get
+- apiGroups: [""]
+  resources:
+  - services
+  - endpoints
+  - pods
+  verbs: ["get", "list", "watch"]
 ---
 # Source: kubetasker-controller/templates/manager-clusterrolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -154,11 +156,11 @@ subjects:
   name: kubetasker-controller-test
   namespace: default
 ---
-# Source: kubetasker-controller/templates/metrics-reader-clusterrolebinding.yaml
+# Source: kubetasker-controller/templates/prometheus-rolebinding.yaml
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: kubetasker-controller-test-metrics-reader-binding
+  name: kubetasker-controller-test-prometheus-reader-binding
   labels:
     helm.sh/chart: kubetasker-controller-0.1.0
     app.kubernetes.io/name: kubetasker-controller
@@ -171,8 +173,8 @@ roleRef:
   name: kubetasker-controller-test-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: kubetasker-controller-test
-  namespace: default
+  name: my-kube-prometheus-stack-prometheus
+  namespace: monitoring
 ---
 # Source: kubetasker-controller/templates/leader-election-role.yaml
 apiVersion: rbac.authorization.k8s.io/v1
@@ -420,6 +422,40 @@ metadata:
     app.kubernetes.io/managed-by: Helm
 spec:
   selfSigned: {}
+---
+# Source: kubetasker-controller/templates/prometheus-servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubetasker-controller-test
+  labels:
+    helm.sh/chart: kubetasker-controller-0.1.0
+    app.kubernetes.io/name: kubetasker-controller
+    app.kubernetes.io/instance: kubetasker-controller-test
+    app.kubernetes.io/version: "0.0.1"
+    app.kubernetes.io/managed-by: Helm
+    release: my-kube-prometheus-stack
+spec:
+  namespaceSelector:
+    matchNames:
+    - default
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubetasker-controller
+      app.kubernetes.io/instance: kubetasker-controller-test
+      control-plane: controller-manager
+  endpoints:
+  - port: https
+    path: /metrics
+    interval: 15s
+    scheme: https
+    bearerTokenFile: /var/run/secrets/kubernetes.io/serviceaccount/token
+    tlsConfig:
+      # The option insecureSkipVerify: true is not recommended for production.
+      # For production, it is recommended to use cert-manager for automatic TLS certificate management.
+      # The 'cert-manager.yaml' template in this chart creates a self-signed cert for this purpose.
+      # You would then configure the ca, cert, and keySecret fields here.
+      insecureSkipVerify: true
 ---
 # Source: kubetasker-controller/templates/webhooks.yaml
 apiVersion: admissionregistration.k8s.io/v1
