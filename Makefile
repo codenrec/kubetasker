@@ -313,6 +313,7 @@ install-prometheus-stack:
 			--create-namespace \
 			--set installedCDRs=true \
 			--wait; \
+		kubectl apply -f config/prometheus/monitor.yaml -n monitoring; \
 		else \
 			echo "--- prometheus is already installed. Skipping installation."; \
 		fi
