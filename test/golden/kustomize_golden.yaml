@@ -593,7 +593,7 @@ roleRef:
   name: kubetasker-base-kubetasker-controller-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: my-kube-prometheus-stack-prometheus
+  name: ktask-prom-prometheus
   namespace: monitoring
 ---
 apiVersion: v1
@@ -848,7 +848,7 @@ metadata:
     app.kubernetes.io/name: kubetasker-controller
     app.kubernetes.io/version: 0.0.1
     helm.sh/chart: kubetasker-controller-0.1.0
-    release: my-kube-prometheus-stack
+    release: ktask-prom
   name: kubetasker-base-kubetasker-controller
 spec:
   endpoints:

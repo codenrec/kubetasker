@@ -173,13 +173,13 @@ webhookPrefix: ""
 prometheus:
   serviceAccount:
     # The name of the ServiceAccount that Prometheus uses to scrape metrics.
-    name: my-kube-prometheus-stack-prometheus
+    name: ktask-prom-prometheus
     namespace: monitoring
   serviceMonitor:
     # When true, a ServiceMonitor resource will be created.
     enabled: true
     # Additional labels to add to the ServiceMonitor.
     # The prometheus-operator uses this to discover ServiceMonitors.
-    # For example: { "release": "my-kube-prometheus-stack" }
+    # For example: { "release": "ktask-prom" }
     labels:
-      release: my-kube-prometheus-stack
+      release: ktask-prom

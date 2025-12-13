@@ -173,7 +173,7 @@ roleRef:
   name: kubetasker-controller-test-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: my-kube-prometheus-stack-prometheus
+  name: ktask-prom-prometheus
   namespace: monitoring
 ---
 # Source: kubetasker-controller/templates/leader-election-role.yaml
@@ -434,7 +434,7 @@ metadata:
     app.kubernetes.io/instance: kubetasker-controller-test
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
-    release: my-kube-prometheus-stack
+    release: ktask-prom
 spec:
   namespaceSelector:
     matchNames:

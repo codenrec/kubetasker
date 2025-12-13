@@ -186,7 +186,7 @@ roleRef:
   name: umbrella-dev-kubetasker-controller-metrics-reader
 subjects:
 - kind: ServiceAccount
-  name: my-kube-prometheus-stack-prometheus
+  name: ktask-prom-prometheus
   namespace: monitoring
 ---
 # Source: kubetasker/charts/kubetasker-controller/templates/leader-election-role.yaml
@@ -491,7 +491,7 @@ metadata:
     app.kubernetes.io/instance: umbrella-dev
     app.kubernetes.io/version: "0.0.1"
     app.kubernetes.io/managed-by: Helm
-    release: my-kube-prometheus-stack
+    release: ktask-prom
 spec:
   namespaceSelector:
     matchNames:

@@ -28,7 +28,8 @@ PYVENV=.kubetasker_pyenv
 FRONTEND=kubetasker-frontend
 FRONTEND_PORT=8000
 
-PROMETHEUS=my-kube-prometheus-stack-prometheus
+PROMETHEUS_RELEASE_NAME ?= ktask-prom
+PROMETHEUS_SERVICE=$(PROMETHEUS_RELEASE_NAME)-prometheus
 PROMETHEUS_PORT=9090
 
 # Path to the Helm charts directory
@@ -144,7 +145,7 @@ setup-test-e2e: ## Set up a Kind cluster for e2e tests if it does not exist
 
 .PHONY: test-e2e
 test-e2e: setup-test-e2e manifests generate fmt vet ## Run the e2e tests. Expected an isolated environment using Kind.
-	go test -tags=e2e ./test/e2e/ -v -ginkgo.v
+	PROMETHEUS_RELEASE_NAME=$(PROMETHEUS_RELEASE_NAME) go test -tags=e2e ./test/e2e/ -v -ginkgo.v
 	$(MAKE) cleanup-test-e2e
 
 .PHONY: cleanup-test-e2e
@@ -283,7 +284,7 @@ install-prometheus-stack:
 		echo "--- prometheus not found. Installing via Helm..."; \
 		helm repo add prometheus-community https://prometheus-community.github.io/helm-charts --force-update; \
 		helm repo update; \
-		helm install my-kube-prometheus-stack prometheus-community/kube-prometheus-stack \
+		helm install $(PROMETHEUS_RELEASE_NAME) prometheus-community/kube-prometheus-stack \
 			--namespace monitoring \
 			--create-namespace \
 			--set crd.create=true \
@@ -416,7 +417,7 @@ $(GOLANGCI_LINT): $(LOCALBIN)
 
 .PHONY: local-prometheus-dashboard
 local-prometheus-dashboard: 
-	$(KUBECTL) port-forward svc/$(PROMETHEUS) -n monitoring $(PROMETHEUS_PORT):$(PROMETHEUS_PORT)
+	$(KUBECTL) port-forward svc/$(PROMETHEUS_SERVICE) -n monitoring $(PROMETHEUS_PORT):$(PROMETHEUS_PORT)
 
 # go-install-tool will 'go install' any package with custom target and name of binary, if it doesn't exist
 # $1 - target path with name of binary
