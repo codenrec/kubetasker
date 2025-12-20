@@ -89,6 +89,8 @@ var _ = Describe("Kustomize Deployments", Ordered, func() {
 					"--set", fmt.Sprintf("kubetasker-controller.image.tag=%s", strings.Split(projectImage, ":")[1]),
 					"--set", fmt.Sprintf("kubetasker-frontend.image.repository=%s", strings.Split(frontendImage, ":")[0]),
 					"--set", fmt.Sprintf("kubetasker-frontend.image.tag=%s", strings.Split(frontendImage, ":")[1]),
+					"--set", "kubetasker-controller.metrics.enabled=false",
+					"--set", "kubetasker-frontend.metrics.enabled=false",
 					// Ensure image pull policy is set for the local Kind cluster
 					"--set", "global.imagePullPolicy=IfNotPresent",
 					// Explicitly set the webhook service namespace for the certificate

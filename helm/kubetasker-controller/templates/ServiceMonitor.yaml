@@ -1,3 +1,4 @@
+{{- if .Values.metrics.enabled }}
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -20,3 +21,4 @@ spec:
       scheme: https
       tlsConfig:
         insecureSkipVerify: true  # for self-signed certs
+{{- end }}

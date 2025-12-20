@@ -36,9 +36,10 @@ serviceAccount:
 podAnnotations: {}
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels:
-  app.kubernetes.io/name: kubetasker-frontend
-  app.kubernetes.io/component: frontend
+# commented out to avoid duplicating labels with the kustomize overlays
+# podLabels:
+#   app.kubernetes.io/name: kubetasker-frontend
+#   app.kubernetes.io/component: frontend
 
 podSecurityContext: {}
   # fsGroup: 2000
@@ -52,7 +53,9 @@ securityContext: {}
   # runAsUser: 1000
 
 metrics:
+  name: metrics
   port: 8081
+  enabled: false
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:

@@ -107,6 +107,8 @@ var _ = Describe("Umbrella Chart Environments", Ordered, func() {
 					"--set", "kubetasker-frontend.fullnameOverride=" + tt.frontendServiceName,
 					"--set", "kubetasker-controller.webhook.service.namespace=" + tt.namespace,
 					"--set", "kubetasker-controller.webhookPrefix=umbrella-" + tt.environment + "-",
+					"--set", "kubetasker-controller.metrics.enabled=false",
+					"--set", "kubetasker-frontend.metrics.enabled=false",
 					"--timeout", "90s", // Add timeout to the helm command itself
 					"--wait",
 				}

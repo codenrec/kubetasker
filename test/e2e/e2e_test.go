@@ -74,6 +74,8 @@ var _ = Describe("Manager", Ordered, func() {
 			"--set", "webhookPrefix=single-",
 			"--set", "fullnameOverride="+controllerFullName,
 			"--set", "webhook.service.namespace="+namespace,
+			"--set", "kubetasker-controller.metrics.enabled=false",
+			"--set", "kubetasker-frontend.metrics.enabled=false",
 			"--wait")
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to deploy the controller-manager")
