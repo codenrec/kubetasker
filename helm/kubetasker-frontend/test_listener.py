@@ -1,7 +1,10 @@
 from fastapi.testclient import TestClient
-from unittest.mock import patch, MagicMock
+from fastapi.responses import PlainTextResponse
+from unittest.mock import patch, MagicMock, ANY
+from listener import list_ktasks
 import pytest
 import json
+import re
 
 # We need to import the real kubernetes.client.exceptions here
 # to create a mock ApiException that behaves like the real one.
@@ -382,6 +385,51 @@ def test_api_unavailable_when_k8s_client_fails(method, url):
 
     # Clear the override for other tests
     app.dependency_overrides.clear()
+
+@pytest.mark.parametrize(
+    "namespace, mock_items_count",
+    [
+        ("default", 0),
+        ("default", 2),
+        ("test-ns", 5),
+        ("empty-ns", 0),
+    ],
+    ids=[
+        "default_zero",
+        "default_two",
+        "test_ns_five",
+        "empty_ns_zero",
+    ]
+)
+def test_metrics_endpoint_counts_using_list_ktasks(setup_app_and_mock_k8s_client, namespace, mock_items_count):
+    """
+    Parameterized test for /metrics using the actual list_ktasks function.
+    Mocks list_ktasks instead of the raw K8s client.
+    """
+    _, client, _ = setup_app_and_mock_k8s_client
+
+    # Mock list_ktasks to return the expected number of items
+    with patch("listener.list_ktasks") as mock_list_ktasks:
+        mock_list_ktasks.return_value = {"items": [{"metadata": {"name": f"job{i}"}} for i in range(mock_items_count)]}
+
+        response = client.get(f"/metrics?namespace={namespace}")
+
+        # Assertions
+        assert response.status_code == 200
+        assert response.headers["content-type"] == "text/plain; charset=utf-8"
+        body_text = response.text
+
+        # Check Prometheus metric lines
+        assert "# HELP ktasks_total Total number of Ktasks" in body_text
+        assert "# TYPE ktasks_total gauge" in body_text
+
+        # Check the metric value matches the mocked count
+        match = re.search(r"^ktasks_total (\d+)$", body_text, re.MULTILINE)
+        assert match is not None
+        assert int(match.group(1)) == mock_items_count
+
+        # Ensure list_ktasks was called with the correct namespace
+        mock_list_ktasks.assert_called_once_with(namespace=namespace, api=ANY)
 
 def _raise_exception(exc):
     """Helper function to raise an exception within a lambda."""

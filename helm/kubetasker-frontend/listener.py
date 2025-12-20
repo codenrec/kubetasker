@@ -1,5 +1,6 @@
 
 from fastapi import FastAPI, HTTPException, Response, Depends
+from fastapi.responses import PlainTextResponse
 from pydantic import BaseModel, Field, field_validator
 import logging
 import json
@@ -207,3 +208,14 @@ def get_ktask(
             raise HTTPException(status_code=404, detail=f"Ktask '{job_name}' not found in namespace '{namespace}'.")
         log.error(f"Failed to retrieve Ktask '{job_name}'", exc_info=True)
         raise HTTPException(status_code=e.status, detail={"error": f"Failed to retrieve Ktask '{job_name}'", "details": e.reason, "body": json.loads(e.body)})
+    
+@app.get("/metrics")
+def metrics(namespace: str = "default", api: client.CustomObjectsApi = Depends(get_k8s_api)):
+    response = list_ktasks(namespace=namespace, api=api)
+    total_ktasks = len(response.get("items", []))
+    metrics_text = f"""
+# HELP ktasks_total Total number of Ktasks in the namespace
+# TYPE ktasks_total gauge
+ktasks_total {total_ktasks}
+"""
+    return PlainTextResponse(metrics_text, media_type="text/plain")
