@@ -24,6 +24,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"time"
 
 	. "github.com/onsi/ginkgo/v2" // nolint:revive,staticcheck
 )
@@ -299,4 +300,34 @@ func UncommentCode(filename, target, prefix string) error {
 	}
 
 	return nil
+}
+
+// WaitForKindAPI waits until the Kind cluster API responds
+func WaitForKindAPI(clusterName string, timeoutSeconds int) error {
+	deadline := time.Now().Add(time.Duration(timeoutSeconds) * time.Second)
+	ctx := clusterName
+
+	for time.Now().Before(deadline) {
+		cmd := exec.Command("kubectl", "--context", ctx, "get", "ns")
+		if _, err := Run(cmd); err == nil {
+			return nil
+		}
+		time.Sleep(2 * time.Second)
+	}
+	return fmt.Errorf("Kubernetes API never became ready for cluster %s", clusterName)
+}
+
+// WaitForKubeSystemPodsReady waits for all pods in kube-system to be in Ready state
+func WaitForKubeSystemPodsReady(timeoutSeconds int) error {
+	deadline := time.Now().Add(time.Duration(timeoutSeconds) * time.Second)
+
+	for time.Now().Before(deadline) {
+		cmd := exec.Command("kubectl", "get", "pods", "-n", "kube-system", "--field-selector=status.phase!=Running")
+		out, _ := Run(cmd)
+		if out == "" {
+			return nil
+		}
+		time.Sleep(3 * time.Second)
+	}
+	return fmt.Errorf("Not all kube-system pods became ready in %d seconds", timeoutSeconds)
 }

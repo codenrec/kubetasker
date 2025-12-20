@@ -68,3 +68,12 @@ Create the full image name
 {{- $tag := .Values.image.tag | default .Chart.AppVersion -}}
 {{- printf "%s:%s" .Values.image.repository $tag }}
 {{- end -}}
+
+{{/*
+Labels for Prometheus ServiceMonitor
+*/}}
+{{- define "kubetasker-controller.prometheus.labels" -}}
+{{- if .Values.prometheus.serviceMonitor.labels }}
+{{- toYaml .Values.prometheus.serviceMonitor.labels }}
+{{- end }}
+{{- end -}}

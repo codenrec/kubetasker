@@ -14,7 +14,8 @@ spec:
     - {{ .Release.Namespace }}
   selector:
     matchLabels:
-      {{- include "kubetasker-frontend.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/name: {{ include "kubetasker-frontend.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
   endpoints:
   - port: http
     path: /metrics

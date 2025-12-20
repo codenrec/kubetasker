@@ -100,6 +100,12 @@ var _ = BeforeSuite(func() {
 	// check for its presence before execution.
 	// Setup CertManager before the suite if not skipped and if not already installed
 	if !skipCertManagerInstall {
+		By("waiting for Kind API to be ready")
+		Expect(utils.WaitForKindAPI(kindClusterName, 60)).To(Succeed())
+
+		By("waiting for kube-system pods to be ready")
+		Expect(utils.WaitForKubeSystemPodsReady(120)).To(Succeed())
+
 		By("checking if cert manager is installed already")
 		isCertManagerAlreadyInstalled = utils.IsCertManagerCRDsInstalled()
 		if !isCertManagerAlreadyInstalled {
@@ -110,14 +116,12 @@ var _ = BeforeSuite(func() {
 		}
 
 		By("installing the Kubernetes Metrics Server")
-		// The HPA tests require the Metrics Server to be running.
-		// We apply the components and then patch the deployment for insecure TLS, which is necessary for Kind.
 		Expect(utils.InstallMetricsServer()).To(Succeed(), "Failed to install Metrics Server")
 
 		By("installing the Prometheus Operator CRDs for ServiceMonitor support")
 		Expect(utils.InstallPrometheusOperator()).To(Succeed(), "Failed to install Prometheus Operator")
-
 	}
+
 })
 
 var _ = AfterSuite(func() {

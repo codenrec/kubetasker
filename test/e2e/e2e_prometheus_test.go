@@ -30,7 +30,7 @@ var _ = Describe("Prometheus Integration", Ordered, func() {
 		controllerFullName = releaseName + "-kubetasker-controller"
 		frontendFullName   = releaseName + "-kubetasker-frontend"
 		monitoringNS       = "monitoring"
-		prometheusSvcName  = "prometheus" // The service name within the kube-prometheus-stack chart
+		prometheusSvcName  = "prometheus-operated" // Service created by the Prometheus Operator
 	)
 
 	BeforeAll(func() {
@@ -52,6 +52,16 @@ var _ = Describe("Prometheus Integration", Ordered, func() {
 		_, err = utils.Run(cmd)
 		Expect(err).NotTo(HaveOccurred(), "Failed to install kube-prometheus-stack. The command may have timed out.")
 
+		By("patching Prometheus CR to watch the test namespace")
+		// This allows Prometheus to discover ServiceMonitors in other namespaces.
+		// We merge this with the existing selector to avoid breaking self-monitoring.
+		prometheusCRName := prometheusReleaseName + "-prometheus"
+		patch := fmt.Sprintf(`{"spec":{"serviceMonitorNamespaceSelector":{"matchExpressions":[{"key":"kubernetes.io/metadata.name","operator":"In","values":["%s","%s"]}]}}}`, namespace, monitoringNS)
+		cmd = exec.Command("kubectl", "patch", "prometheus", prometheusCRName, "-n", monitoringNS,
+			"--type", "merge", "-p", patch)
+		_, err = utils.Run(cmd)
+		Expect(err).NotTo(HaveOccurred(), "Failed to patch Prometheus CR for multi-namespace monitoring")
+
 		By("creating the test namespace")
 		cmd = exec.Command("kubectl", "create", "ns", namespace)
 		_, err = utils.Run(cmd)
@@ -71,8 +81,8 @@ var _ = Describe("Prometheus Integration", Ordered, func() {
 			"--set", "kubetasker-controller.fullnameOverride="+controllerFullName,
 			"--set", "kubetasker-frontend.fullnameOverride="+frontendFullName,
 			"--set", "kubetasker-controller.webhook.service.namespace="+namespace,
-			"--set", "kubetasker-controller.prometheus.serviceMonitor.labels.release=ktask-prometheus-stack",
-			"--set", "kubetasker-frontend.prometheus.serviceMonitor.labels.release=ktask-prometheus-stack",
+			"--set", "kubetasker-controller.prometheus.serviceMonitor.labels.release="+prometheusReleaseName,
+			"--set", "kubetasker-frontend.prometheus.serviceMonitor.labels.release="+prometheusReleaseName,
 			"--timeout", "3m",
 			"--wait")
 		_, err = utils.Run(cmd)
@@ -96,12 +106,14 @@ var _ = Describe("Prometheus Integration", Ordered, func() {
 		cleanupWebhookConfigurations(controllerFullName)
 	})
 
+	// After each test, if it fails, run the debug logger.
+	AfterEach(func() {
+		logPrometheusDebugInfo(monitoringNS, namespace, controllerFullName, frontendFullName)
+	})
+
 	It("should have its controller and frontend metrics scraped by Prometheus", func() {
-		// Dynamically construct the prometheus service name from the environment variable
-		// set in the Makefile. This is more robust than hardcoding.
-		prometheusReleaseName := os.Getenv("PROMETHEUS_RELEASE_NAME")
-		Expect(prometheusReleaseName).NotTo(BeEmpty(), "PROMETHEUS_RELEASE_NAME env var must be set")
-		prometheusSvc := fmt.Sprintf("%s-%s", prometheusReleaseName, prometheusSvcName)
+		// The prometheus-operated service is consistently named by the Prometheus Operator.
+		prometheusSvc := prometheusSvcName
 		By("starting port-forward to Prometheus")
 		// Use gexec.Start to manage the port-forward process in the background.
 		// It's more robust than managing context and pipes manually.
@@ -149,6 +161,43 @@ var _ = Describe("Prometheus Integration", Ordered, func() {
 		}, "3m", "10s").Should(Succeed(), "Frontend metrics should be scraped and up")
 	})
 })
+
+// logPrometheusDebugInfo captures the state of Prometheus-related resources when a test fails.
+func logPrometheusDebugInfo(monitoringNS, appNS, controllerName, frontendName string) {
+	if !CurrentSpecReport().Failed() {
+		return
+	}
+
+	prometheusReleaseName := os.Getenv("PROMETHEUS_RELEASE_NAME")
+	if prometheusReleaseName == "" {
+		return // Cannot run if env var is not set
+	}
+
+	// logCommand is a helper to execute a command and print its output to the Ginkgo writer.
+	logCommand := func(description string, cmd *exec.Cmd) {
+		By(description)
+		output, err := utils.Run(cmd)
+		if err != nil {
+			_, _ = fmt.Fprintf(GinkgoWriter, "Failed to run command for '%s': %v\n", description, err)
+			return
+		}
+		_, _ = fmt.Fprintf(GinkgoWriter, "%s:\n---\n%s\n---\n\n", description, output)
+	}
+
+	// 1. Check the Prometheus CR to see what it's configured to select.
+	prometheusCRName := fmt.Sprintf("%s-prometheus", prometheusReleaseName)
+	logCommand("Get Prometheus CR Spec",
+		exec.Command("kubectl", "get", "prometheus", prometheusCRName, "-n", monitoringNS, "-o", "jsonpath={.spec.serviceMonitorSelector}"))
+
+	// 2. Check the controller's ServiceMonitor.
+	logCommand("Get Controller ServiceMonitor YAML",
+		exec.Command("kubectl", "get", "servicemonitor", controllerName+"-metrics", "-n", appNS, "-o", "yaml"))
+
+	// 3. Check the controller's metrics Service.
+	logCommand("Get Controller Metrics Service YAML",
+		exec.Command("kubectl", "get", "service", controllerName+"-metrics-service", "-n", appNS, "-o", "yaml"))
+
+}
 
 // queryPrometheus is a helper to query the Prometheus API.
 func queryPrometheus(query string) (string, error) {

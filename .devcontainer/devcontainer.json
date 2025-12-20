@@ -1,25 +1,59 @@
 {
-  "name": "Kubebuilder DevContainer",
-  "image": "golang:1.24",
+  "name": "Kubetasker DevContainer",
+  "privileged": true,
+  "image": "mcr.microsoft.com/devcontainers/base:ubuntu-24.04",
+
   "features": {
-    "ghcr.io/devcontainers/features/docker-in-docker:2": {},
+    "ghcr.io/devcontainers/features/go:1": {
+      "version": "1.25"
+    },
+
+    "ghcr.io/devcontainers/features/python:1": {
+      "version": "3.12"
+    },
+
+    "ghcr.io/devcontainers/features/kubectl-helm-minikube:1": {
+      "version": "latest"
+    },
+
+    "ghcr.io/devcontainers/features/docker-in-docker:2": {
+      "moby": false
+    },
+
     "ghcr.io/devcontainers/features/git:1": {}
   },
 
-  "runArgs": ["--network=host"],
+
+  "mounts": [
+    "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind",
+    // Mount the X11 socket for GUI applications
+    "source=/tmp/.X11-unix,target=/tmp/.X11-unix,type=bind,consistency=cached",
+    // Mount .gitconfig to use your Git identity.
+    "source=${localEnv:HOME}/.gitconfig,target=/home/vscode/.gitconfig,type=bind,consistency=cached",
+    // Mount .ssh folder to use your SSH keys for git.
+    "source=${localEnv:HOME}${localEnv:USERPROFILE}/.ssh,target=/home/vscode/.ssh,type=bind,consistency=cached",
+    // Mount .bashrc to reuse shell aliases, functions, and prompt settings.
+    "source=${localEnv:HOME}/.bashrc,target=/home/vscode/.bashrc,type=bind,consistency=cached"
+    ],
 
   "customizations": {
     "vscode": {
       "settings": {
-        "terminal.integrated.shell.linux": "/bin/bash"
+        "terminal.integrated.defaultProfile.linux": "bash"
       },
       "extensions": [
+        "golang.go",
+        "ms-python.python",
         "ms-kubernetes-tools.vscode-kubernetes-tools",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "redhat.vscode-yaml",
+        "Google.geminicodeassist",
+				"-GitHub.copilot" 
       ]
     }
   },
 
-  "onCreateCommand": "bash .devcontainer/post-install.sh"
+  "onCreateCommand": "bash .devcontainer/post-install.sh",
+  "postCreateCommand": "echo 'source /home/vscode/.bashrc' >> /root/.bashrc",
+  "remoteUser": "root"
 }
-

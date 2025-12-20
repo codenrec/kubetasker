@@ -2,12 +2,10 @@
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
-  name: {{ include "kubetasker-controller.fullname" . }}
+  name: {{ include "kubetasker-controller.fullname" . }}-metrics
   labels:
     {{- include "kubetasker-controller.labels" . | nindent 4 }}
-    {{- if .Values.prometheus.serviceMonitor.labels }}
-    {{- toYaml .Values.prometheus.serviceMonitor.labels | nindent 4 }}
-    {{- end }}
+    {{- include "kubetasker-controller.prometheus.labels" . | nindent 4 }}
 spec:
   namespaceSelector:
     matchNames:
@@ -15,7 +13,6 @@ spec:
   selector:
     matchLabels:
       {{- include "kubetasker-controller.selectorLabels" . | nindent 6 }}
-      control-plane: controller-manager
   endpoints:
   - port: https
     path: /metrics

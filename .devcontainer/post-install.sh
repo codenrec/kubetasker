@@ -1,23 +1,63 @@
-#!/bin/bash
-set -x
+#!/usr/bin/env bash
+set -euo pipefail
 
-curl -Lo ./kind https://kind.sigs.k8s.io/dl/latest/kind-linux-amd64
-chmod +x ./kind
-mv ./kind /usr/local/bin/kind
+BIN_DIR="$HOME/.local/bin"
+mkdir -p "$BIN_DIR"
 
-curl -L -o kubebuilder https://go.kubebuilder.io/dl/latest/linux/amd64
-chmod +x kubebuilder
-mv kubebuilder /usr/local/bin/
+echo "▶ Installing project-specific tooling..."
 
-KUBECTL_VERSION=$(curl -L -s https://dl.k8s.io/release/stable.txt)
-curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
-chmod +x kubectl
-mv kubectl /usr/local/bin/kubectl
+ARCH="$(uname -m)"
+OS="$(uname | tr '[:upper:]' '[:lower:]')"
 
-docker network create -d=bridge --subnet=172.19.0.0/24 kind
+case "$ARCH" in
+  x86_64) ARCH=amd64 ;;
+  aarch64|arm64) ARCH=arm64 ;;
+  *)
+    echo "Unsupported architecture: $ARCH"
+    exit 1
+    ;;
+esac
 
+### ---- kind -------------------------------------------------
+KIND_VERSION=v0.23.0
+
+if ! command -v kind >/dev/null 2>&1; then
+  echo "▶ Installing kind ${KIND_VERSION}"
+  curl -Lo "${BIN_DIR}/kind" \
+    "https://kind.sigs.k8s.io/dl/${KIND_VERSION}/kind-${OS}-${ARCH}"
+  chmod +x "${BIN_DIR}/kind"
+else
+  echo "✓ kind already installed"
+fi
+
+### ---- kubebuilder -----------------------------------------
+KUBEBUILDER_VERSION=v4.5.0
+
+if ! command -v kubebuilder >/dev/null 2>&1; then
+  echo "▶ Installing kubebuilder ${KUBEBUILDER_VERSION}"
+  curl -fLo "${BIN_DIR}/kubebuilder" \
+    "https://go.kubebuilder.io/dl/latest/${OS}/${ARCH}"
+  chmod +x "${BIN_DIR}/kubebuilder"
+else
+  echo "✓ kubebuilder already installed"
+fi
+
+### ---- kind cluster ----------------------------------------
+# CLUSTER_NAME=kubetasker
+
+# if ! kind get clusters 2>/dev/null | grep -qx "${CLUSTER_NAME}"; then
+#   echo "▶ Creating kind cluster '${CLUSTER_NAME}'"
+#   kind create cluster --name "${CLUSTER_NAME}"
+# else
+#   echo "✓ kind cluster '${CLUSTER_NAME}' already exists"
+# fi
+
+### ---- Sanity checks ---------------------------------------
+echo
+echo "▶ Tool versions"
 kind version
 kubebuilder version
 docker --version
 go version
 kubectl version --client
+helm version
