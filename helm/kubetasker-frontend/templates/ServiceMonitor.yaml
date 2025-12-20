@@ -12,8 +12,7 @@ spec:
       app.kubernetes.io/name: kubetasker-frontend
       app.kubernetes.io/component: frontend
   namespaceSelector:
-    matchNames:
-      - kubetasker-system-e2e
+    any: true
   endpoints:
     - port: metrics
       path: /metrics
