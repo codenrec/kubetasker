@@ -29,6 +29,8 @@ spec:
         ports:
         - containerPort: {{ .Values.service.port }}
           name: http
+        - containerPort: {{ .Values.metrics.port }}
+          name: metrics  
         livenessProbe:
           httpGet:
             path: /healthz

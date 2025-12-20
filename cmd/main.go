@@ -158,6 +158,8 @@ func run(cfg *rest.Config, scheme *runtime.Scheme, args []string) error {
 		metricsServerOptions.CertName = metricsCertName
 		metricsServerOptions.KeyName = metricsCertKey
 	}
+	// Register custom metrics from the controller for prometheus
+	controller.RegisterMetrics()
 
 	mgr, err := newManager(cfg, ctrl.Options{
 		Scheme:                 scheme,

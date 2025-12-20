@@ -9,6 +9,13 @@ from typing import List, Optional
 from kubernetes import client, config
 from kubernetes.client.exceptions import ApiException
 from contextlib import asynccontextmanager
+from prometheus_client import Counter, start_http_server
+
+# Expose metrics on port 8000
+start_http_server(8081)
+
+# Define the metric
+ktask_counter = Counter('ktasks_total', 'Total number of Ktasks created')
 
 # --- Structured Logging Setup ---
 class JsonFormatter(logging.Formatter):

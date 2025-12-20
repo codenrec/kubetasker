@@ -58,9 +58,14 @@ spec:
     app.kubernetes.io/name: kubetasker-frontend
     app.kubernetes.io/instance: kubetasker-frontend-test
   ports:
-    - protocol: TCP
+    - name: http
+      protocol: TCP
       port: 8000
       targetPort: http
+    - name: metrics
+      protocol: TCP
+      port: 8081
+      targetPort: metrics
 ---
 # Source: kubetasker-frontend/templates/deployment.yaml
 apiVersion: apps/v1
@@ -93,6 +98,8 @@ spec:
         ports:
         - containerPort: 8000
           name: http
+        - containerPort: 8081
+          name: metrics  
         livenessProbe:
           httpGet:
             path: /healthz

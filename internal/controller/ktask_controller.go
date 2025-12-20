@@ -215,6 +215,8 @@ func (r *KtaskReconciler) reconcileExistingJob(ctx context.Context, ktask *custo
 				return ctrl.Result{}, err
 			}
 		}
+		// increment metric
+		KtasksProcessed.Inc()
 		return ctrl.Result{}, nil // Stop reconciliation
 	}
 
