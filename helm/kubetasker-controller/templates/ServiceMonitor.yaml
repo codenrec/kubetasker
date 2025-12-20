@@ -1,0 +1,22 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubetasker-controller-metrics
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubetasker-controller-metrics-service
+      app.kubernetes.io/component: controller
+  namespaceSelector:
+    matchNames:
+      - kubetasker-system-e2e
+  endpoints:
+    - port: metrics       # must match the port name in the controller metrics service
+      path: /metrics      # explicit metrics path
+      interval: 15s
+      scheme: https
+      tlsConfig:
+        insecureSkipVerify: true  # for self-signed certs

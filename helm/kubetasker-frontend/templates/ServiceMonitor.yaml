@@ -1,0 +1,20 @@
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: kubetasker-frontend-metrics
+  namespace: monitoring
+  labels:
+    release: prometheus
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: kubetasker-frontend
+      app.kubernetes.io/component: frontend
+  namespaceSelector:
+    matchNames:
+      - kubetasker-system-e2e
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: 15s
+      scheme: http

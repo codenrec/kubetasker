@@ -36,7 +36,9 @@ serviceAccount:
 podAnnotations: {}
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
+podLabels:
+  app.kubernetes.io/name: kubetasker-frontend
+  app.kubernetes.io/component: frontend
 
 podSecurityContext: {}
   # fsGroup: 2000
@@ -54,6 +56,9 @@ metrics:
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
+  labels:
+    app.kubernetes.io/name: kubetasker-frontend
+    app.kubernetes.io/component: frontend
   # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
   # This sets the port for the service and the container. The frontend application listens on 8000.

@@ -298,6 +298,22 @@ install-cert-manager: ## Install cert-manager using Helm if it's not already pre
 		echo "--- cert-manager is already installed. Skipping installation."; \
 	fi
 
+.PHONY: prometheus-install prometheus-uninstall
+
+PROM_NAMESPACE ?= monitoring
+PROM_RELEASE ?= prometheus
+
+prometheus-install:
+	@echo "Installing Prometheus stack in namespace $(PROM_NAMESPACE)..."
+	helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+	helm repo update
+	helm upgrade --install $(PROM_RELEASE) prometheus-community/kube-prometheus-stack \
+		--namespace $(PROM_NAMESPACE) --create-namespace
+
+prometheus-uninstall:
+	@echo "Uninstalling Prometheus stack from namespace $(PROM_NAMESPACE)..."
+	helm uninstall $(PROM_RELEASE) -n $(PROM_NAMESPACE)
+
 # Variables for the umbrella deployment
 UMBRELLA_NAMESPACE ?= kubetasker-system
 UMBRELLA_RELEASE_NAME ?= kubetasker

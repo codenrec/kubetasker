@@ -37,7 +37,9 @@ serviceAccount:
 podAnnotations: {}
 # This is for setting Kubernetes Labels to a Pod.
 # For more information checkout: https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/
-podLabels: {}
+podLabels:
+  app.kubernetes.io/name: kubetasker-controller
+  app.kubernetes.io/component: controller
 
 podSecurityContext: {}
 
@@ -50,6 +52,9 @@ securityContext: {}
 
 # This is for setting up a service more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/
 service:
+  labels:
+    app.kubernetes.io/name: kubetasker-controller-metrics-service
+    app.kubernetes.io/component: controller
   # This sets the service type more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#publishing-services-service-types
   type: ClusterIP
   # This sets the ports more information can be found here: https://kubernetes.io/docs/concepts/services-networking/service/#field-spec-ports
