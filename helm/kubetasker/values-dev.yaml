@@ -1,14 +1,10 @@
 #
 # Development Environment values for kubetasker
 #
-# helm install kubetasker ./kubetasker -f ./kubetasker/values-dev.yaml
-#
 
-# Global settings for development
 global:
   imagePullPolicy: IfNotPresent
 
-# Controller settings for dev
 kubetasker-controller:
   replicaCount: 1
   resources:
@@ -18,8 +14,11 @@ kubetasker-controller:
     requests:
       cpu: 100m
       memory: 128Mi
+  metrics:
+    enabled: true
+    name: metrics
+    port: 8081
 
-# Frontend settings for dev
 kubetasker-frontend:
   replicaCount: 1
   resources:
@@ -30,4 +29,8 @@ kubetasker-frontend:
       cpu: 50m
       memory: 64Mi
   autoscaling:
-    enabled: false # HPA is not needed for a single-replica dev environment
+    enabled: false
+  metrics:
+    enabled: true
+    name: metrics
+    port: 8081

@@ -314,6 +314,14 @@ prometheus-uninstall:
 	@echo "Uninstalling Prometheus stack from namespace $(PROM_NAMESPACE)..."
 	helm uninstall $(PROM_RELEASE) -n $(PROM_NAMESPACE)
 
+prometheus-port-forward:
+	@echo "Port-forwarding Prometheus in background..."
+	kubectl -n $(PROM_NAMESPACE) port-forward svc/prometheus-operated 9090:9090 >/dev/null 2>&1 &
+
+grafana-port-forward:
+	@echo "Port-forwarding Grafana to http://localhost:3000 ..."
+	kubectl -n $(PROM_NAMESPACE) port-forward svc/$(PROM_RELEASE)-grafana 3000:80
+
 # Variables for the umbrella deployment
 UMBRELLA_NAMESPACE ?= kubetasker-system
 UMBRELLA_RELEASE_NAME ?= kubetasker
@@ -332,6 +340,7 @@ deploy-umbrella: docker-build docker-build-frontend install-cert-manager ## Depl
 		--set kubetasker-controller.image.tag=$(shell echo $(IMG) | cut -d: -f2) \
 		--set kubetasker-frontend.image.repository=$(shell echo $(FRONTEND_IMG) | cut -d: -f1) \
 		--set kubetasker-frontend.image.tag=$(shell echo $(FRONTEND_IMG) | cut -d: -f2) \
+		$(EXTRA_HELM_ARGS) \
 		--wait
 	@echo "--- KubeTasker umbrella chart deployed successfully."
 	@echo "--- To check the status, run: kubectl get pods -n $(UMBRELLA_NAMESPACE)"
@@ -346,6 +355,14 @@ undeploy-umbrella: ## Undeploy the KubeTasker stack and cert-manager.
 	-helm uninstall cert-manager --namespace cert-manager
 	@echo "--- Deleting cert-manager namespace..."
 	-$(KUBECTL) delete namespace cert-manager --ignore-not-found
+
+.PHONY: deploy-with-metrics
+deploy-with-metrics: prometheus-install ## Deploy KubeTasker with Prometheus metrics enabled
+	$(MAKE) deploy-umbrella \
+		EXTRA_HELM_ARGS="--set kubetasker-controller.metrics.serviceMonitor.enabled=true \
+		--set kubetasker-controller.metrics.serviceMonitor.labels.release=$(PROM_RELEASE) \
+		--set kubetasker-frontend.serviceMonitor.enabled=true \
+		--set kubetasker-frontend.serviceMonitor.labels.release=$(PROM_RELEASE)"
 
 # Variables for Kustomize deployment
 ENVS ?= dev staging prod

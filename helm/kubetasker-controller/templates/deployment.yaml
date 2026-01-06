@@ -1,83 +1,43 @@
-# Note: This file was copied from config/manager/manager.yaml and adapted for Helm.
-# It no longer contains the Namespace resource, which should be managed by Helm itself.
+# Deployment
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "kubetasker-controller.fullname" . }}
-  namespace: {{ .Release.Namespace }}
+  name: kubetasker-controller
+  namespace: kubetasker-system
   labels:
-    {{- include "kubetasker-controller.labels" . | nindent 4 }}
-    control-plane: controller-manager
+    app.kubernetes.io/name: kubetasker-controller
+    app.kubernetes.io/component: controller
 spec:
-  {{- if not .Values.autoscaling.enabled }}
-  replicas: {{ .Values.replicaCount }}
-  {{- end }}
+  replicas: 1
   selector:
     matchLabels:
-      {{- include "kubetasker-controller.selectorLabels" . | nindent 6 }}
-      control-plane: controller-manager
+      app.kubernetes.io/name: kubetasker-controller
+      app.kubernetes.io/component: controller
   template:
     metadata:
-      {{- with .Values.podAnnotations }}
-      annotations:
-        kubectl.kubernetes.io/default-container: manager
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
       labels:
-        {{- include "kubetasker-controller.selectorLabels" . | nindent 8 }}
-        {{- with .Values.podLabels }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
-        control-plane: controller-manager
+        app.kubernetes.io/name: kubetasker-controller
+        app.kubernetes.io/component: controller
     spec:
-      {{- with .Values.imagePullSecrets }}
-      imagePullSecrets:
-        {{- toYaml . | nindent 8 }}
-      {{- end }}
-      serviceAccountName: {{ include "kubetasker-controller.serviceAccountName" . }}
-      securityContext:
-        runAsNonRoot: true
-        seccompProfile:
-          type: RuntimeDefault
-        {{- with .Values.podSecurityContext }}
-        {{- toYaml . | nindent 8 }}
-        {{- end }}
+      serviceAccountName: kubetasker-controller
       containers:
       - name: manager
-        command:
-        - /manager
+        image: controller:0.0.1
+        imagePullPolicy: IfNotPresent
         args:
         - --metrics-bind-address=:8443
         - --leader-elect
-        - --health-probe-bind-address=:{{ .Values.service.port }}
-        image: "{{ include "kubetasker-controller.image" . }}"
-        imagePullPolicy: {{ .Values.image.pullPolicy }}
-        securityContext:
-          allowPrivilegeEscalation: false
-          capabilities:
-            drop:
-            - "ALL"
-          {{- with .Values.securityContext }}
-          {{- toYaml . | nindent 10 }}
-          {{- end }}
+        - --health-probe-bind-address=:8081
+        ports:
+        - name: metrics
+          containerPort: 8443
+        - name: http
+          containerPort: 8081
         livenessProbe:
-          {{- toYaml .Values.livenessProbe | nindent 10 }}
+          httpGet:
+            path: /healthz
+            port: 8081
         readinessProbe:
-          {{- toYaml .Values.readinessProbe | nindent 10 }}
-        resources:
-          {{- toYaml .Values.resources | nindent 10 }}
-        volumeMounts:
-        - mountPath: /tmp/k8s-webhook-server/serving-certs
-          name: webhook-certs
-          readOnly: true
-          {{- with .Values.volumeMounts }}
-          {{- toYaml . | nindent 10 }}
-          {{- end }}
-      terminationGracePeriodSeconds: 10
-      volumes:
-      - name: webhook-certs
-        secret:
-          secretName: {{ include "kubetasker-controller.fullname" . }}-serving-cert
-      {{- with .Values.volumes }}
-      {{- toYaml . | nindent 6 }}
-      {{- end }}
+          httpGet:
+            path: /healthz
+            port: 8081

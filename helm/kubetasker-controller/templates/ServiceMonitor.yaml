@@ -1,4 +1,4 @@
-{{- if .Values.metrics.enabled }}
+# ServiceMonitor
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -9,16 +9,15 @@ metadata:
 spec:
   selector:
     matchLabels:
-      app.kubernetes.io/name: kubetasker-controller-metrics-service
+      app.kubernetes.io/name: kubetasker-controller
       app.kubernetes.io/component: controller
   namespaceSelector:
     matchNames:
-      - kubetasker-system-e2e
+    - kubetasker-system
   endpoints:
-    - port: metrics       # must match the port name in the controller metrics service
-      path: /metrics      # explicit metrics path
-      interval: 15s
-      scheme: https
-      tlsConfig:
-        insecureSkipVerify: true  # for self-signed certs
-{{- end }}
+  - port: metrics
+    path: /metrics
+    scheme: https
+    interval: 15s
+    tlsConfig:
+      insecureSkipVerify: true

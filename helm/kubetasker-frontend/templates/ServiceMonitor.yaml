@@ -1,4 +1,4 @@
-{{- if .Values.metrics.enabled }}
+# ServiceMonitor
 apiVersion: monitoring.coreos.com/v1
 kind: ServiceMonitor
 metadata:
@@ -12,10 +12,10 @@ spec:
       app.kubernetes.io/name: kubetasker-frontend
       app.kubernetes.io/component: frontend
   namespaceSelector:
-    any: true
+    matchNames:
+    - kubetasker-system
   endpoints:
-    - port: metrics
-      path: /metrics
-      interval: 15s
-      scheme: http
-{{- end }}
+  - port: metrics
+    path: /metrics
+    scheme: http
+    interval: 15s

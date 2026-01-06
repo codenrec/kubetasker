@@ -1,20 +1,20 @@
+# Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ .Values.service.name | default (include "kubetasker-frontend.fullname" .) }}
+  name: kubetasker-frontend
+  namespace: kubetasker-system
   labels:
-    {{- include "kubetasker-frontend.labels" . | nindent 4 }}
+    app.kubernetes.io/name: kubetasker-frontend
+    app.kubernetes.io/component: frontend
 spec:
-  type: {{ .Values.service.type }}
   selector:
-    {{- include "kubetasker-frontend.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/name: kubetasker-frontend
+    app.kubernetes.io/component: frontend
   ports:
-    - name: http
-      protocol: TCP
-      port: {{ .Values.service.port }}
-      targetPort: http
-    - name: metrics
-      protocol: TCP
-      port: {{ .Values.metrics.port }}
-      targetPort: metrics
-    
+  - name: http
+    port: 8000
+    targetPort: http
+  - name: metrics
+    port: 8081
+    targetPort: metrics

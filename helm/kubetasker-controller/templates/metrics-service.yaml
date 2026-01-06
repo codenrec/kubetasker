@@ -1,17 +1,17 @@
+# Service
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "kubetasker-controller.fullname" . }}-metrics-service
-  namespace: {{ .Release.Namespace }}
+  name: kubetasker-controller-metrics
+  namespace: kubetasker-system
   labels:
-    {{- include "kubetasker-controller.labels" . | nindent 4 }}
-    control-plane: controller-manager
+    app.kubernetes.io/name: kubetasker-controller
+    app.kubernetes.io/component: controller
 spec:
-  ports:
-  - name: https
-    port: 8443
-    protocol: TCP
-    targetPort: 8443
   selector:
-    {{- include "kubetasker-controller.selectorLabels" . | nindent 4 }}
-    control-plane: controller-manager
+    app.kubernetes.io/name: kubetasker-controller
+    app.kubernetes.io/component: controller
+  ports:
+  - name: metrics
+    port: 8443
+    targetPort: metrics
